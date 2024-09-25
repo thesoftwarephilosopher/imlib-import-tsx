@@ -9,9 +9,14 @@ export async function resolve(specifier, context, nextResolve) {
   }
   catch (e) {
     if (specifier.endsWith('.js')) {
-      return {
-        shortCircuit: true,
-        url: new URL(specifier.replace(/\.js$/, '.tsx'), context.parentURL).href,
+      const tsx = new URL(specifier.replace(/\.js$/, '.tsx'), context.parentURL);
+      if (fs.existsSync(fileURLToPath(tsx))) {
+        return { shortCircuit: true, url: tsx.href };
+      }
+
+      const ts = new URL(specifier.replace(/\.js$/, '.ts'), context.parentURL);
+      if (fs.existsSync(fileURLToPath(ts))) {
+        return { shortCircuit: true, url: ts.href };
       }
     }
     throw e;
@@ -19,7 +24,7 @@ export async function resolve(specifier, context, nextResolve) {
 }
 
 export async function load(url, context, nextLoad) {
-  if (url.endsWith('.tsx')) {
+  if (url.match(/\.tsx?$/)) {
     const source = fs.readFileSync(fileURLToPath(url)).toString('utf8');
     const result = babel.transformSync(source, {
       sourceMaps: 'inline',
